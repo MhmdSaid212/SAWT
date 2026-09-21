@@ -1,0 +1,164 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f7f1e3;
+  --foreground: #263238;
+
+  --cream: #f7f1e3;
+  --card: #fffdf7;
+  --soft: #eee8dc;
+  --ink: #263238;
+  --muted: #737373;
+
+  --brand: #ff7a59;
+  --brand-foreground: #ffffff;
+
+  --accent2: #7c83fd;
+  --accent-foreground: #ffffff;
+
+  --butter: #f9df8f;
+  --mint: #9ed9c2;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  --color-cream: var(--cream);
+  --color-card: var(--card);
+  --color-soft: var(--soft);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+
+  --color-brand: var(--brand);
+  --color-brand-foreground: var(--brand-foreground);
+
+  --color-accent2: var(--accent2);
+  --color-accent-foreground: var(--accent-foreground);
+
+  --color-butter: var(--butter);
+  --color-mint: var(--mint);
+
+  --font-body: var(--font-body);
+  --font-display: var(--font-display);
+  --font-sans: var(--font-body);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button {
+  cursor: pointer;
+}
+
+/* SAWT clay design system */
+
+.clay {
+  box-shadow:
+    8px 8px 0 rgba(38, 50, 56, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+.clay-sm {
+  box-shadow:
+    4px 4px 0 rgba(38, 50, 56, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+.clay-press {
+  transition:
+    transform 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.clay-press:hover {
+  transform: translateY(-2px);
+}
+
+.clay-press:active {
+  transform: translate(2px, 2px);
+  box-shadow:
+    2px 2px 0 rgba(38, 50, 56, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+/* Playful SAWT animations */
+
+.floaty {
+  animation: floaty 4s ease-in-out infinite;
+}
+
+@keyframes floaty {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+.mic-pulse {
+  animation: mic-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes mic-pulse {
+  0%,
+  100% {
+    transform: scale(0.9);
+    opacity: 0.35;
+  }
+
+  50% {
+    transform: scale(1.08);
+    opacity: 0.7;
+  }
+}
+
+.wave-bar {
+  animation: wave-bar 1s ease-in-out infinite alternate;
+}
+
+@keyframes wave-bar {
+  from {
+    transform: scaleY(0.55);
+  }
+
+  to {
+    transform: scaleY(1);
+  }
+}
+
+.star-pop {
+  display: inline-block;
+  animation: star-pop 1.4s ease-in-out infinite;
+}
+
+@keyframes star-pop {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.18) rotate(4deg);
+  }
+}
