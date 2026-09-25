@@ -28,3 +28,25 @@ def get_parent_by_user_id(user_id: str):
     return parents_collection.find_one(
         {"user_id": user_id}
     )
+
+
+
+def get_parent_by_id(parent_id: str):
+    try:
+        return parents_collection.find_one(
+            {"_id": ObjectId(parent_id)}
+        )
+    except Exception:
+        return None
+
+
+
+def delete_parent(parent_id: str):
+    try:
+        result = parents_collection.delete_one(
+            {"_id": ObjectId(parent_id)}
+        )
+
+        return result.deleted_count > 0
+    except Exception:
+        return False

@@ -1,18 +1,22 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
+
+
+class ExerciseTargetCreate(BaseModel):
+    phoneme_id: str
+    target_word: str
 
 
 class ExerciseCreate(BaseModel):
-    title: str = Field(min_length=2, max_length=150)
-    description: str | None = None
-    language: str = Field(min_length=2, max_length=20)
-    difficulty_level: str = Field(min_length=1, max_length=30)
-    created_by: str
-
-
-class ExerciseResponse(BaseModel):
-    id: str
     title: str
-    description: str | None
+    description: str | None = None
     language: str
     difficulty_level: str
-    created_by: str
+    targets: list[ExerciseTargetCreate] = []
+
+
+class ExerciseUpdate(BaseModel):
+    title: str
+    description: str | None = None
+    language: str
+    difficulty_level: str
+    targets: list[ExerciseTargetCreate] = []

@@ -9,6 +9,8 @@ class ChildCreate(BaseModel):
     language_preference: str
     avatar_url: str | None = None
 
+    email: str
+    password: str = Field(min_length=6)
 
 class ChildResponse(BaseModel):
     id: str

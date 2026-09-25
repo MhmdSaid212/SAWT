@@ -36,3 +36,14 @@ def get_exercise_target_by_id(target_id: str):
         )
     except Exception:
         return None
+
+
+
+def delete_targets_by_exercise_id(exercise_id: str):
+    result = exercise_targets_collection.delete_many(
+        {
+            "exercise_id": exercise_id
+        }
+    )
+
+    return result.deleted_count

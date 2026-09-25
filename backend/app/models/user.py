@@ -32,3 +32,49 @@ def get_user_by_id(user_id: str):
         return users_collection.find_one({"_id": ObjectId(user_id)})
     except Exception:
         return None
+
+
+
+def update_user(user_id: str, update_data: dict):
+    try:
+        update_data["updated_at"] = datetime.now(timezone.utc)
+
+        result = users_collection.update_one(
+            {"_id": ObjectId(user_id)},
+            {"$set": update_data},
+        )
+
+        return result.modified_count > 0
+
+    except Exception:
+        return False
+
+
+
+
+def delete_user(user_id: str):
+    try:
+        result = users_collection.delete_one(
+            {"_id": ObjectId(user_id)}
+        )
+
+        return result.deleted_count > 0
+
+    except Exception:
+        return False
+
+
+
+def get_users():
+    return list(
+        users_collection.find(
+            {
+                "role": {
+                    "$in": ["parent", "child", "admin"]
+                }
+            },
+            {
+                "password_hash": 0,
+            },
+        )
+    )

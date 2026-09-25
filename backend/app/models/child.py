@@ -15,6 +15,7 @@ children_collection.create_index(
 
 
 def create_child(child_data: dict):
+    child_data["therapist_id"] = child_data.get("therapist_id")
     child_data["created_at"] = datetime.now(timezone.utc)
     child_data["updated_at"] = datetime.now(timezone.utc)
 
@@ -22,11 +23,10 @@ def create_child(child_data: dict):
 
     return str(result.inserted_id)
 
-
 def get_children_by_parent_id(parent_id: str):
     return list(
         children_collection.find(
-            {"user_id": parent_id}
+            {"parent_id": parent_id}
         )
     )
 
@@ -38,3 +38,38 @@ def get_child_by_id(child_id: str):
         )
     except Exception:
         return None
+
+
+
+def get_child_by_user_id(user_id: str):
+    return children_collection.find_one(
+        {"user_id": user_id}
+    )
+
+
+
+def delete_child(child_id: str):
+    try:
+        result = children_collection.delete_one(
+            {"_id": ObjectId(child_id)}
+        )
+
+        return result.deleted_count > 0
+
+    except Exception:
+        return False
+
+
+def get_all_children():
+    return list(
+        children_collection.find({})
+    )
+
+
+
+def get_children_by_therapist_id(therapist_id: str):
+    return list(
+        children_collection.find(
+            {"therapist_id": therapist_id}
+        )
+    )
