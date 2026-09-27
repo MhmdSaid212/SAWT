@@ -344,7 +344,7 @@ pip install -r requirements.txt
 Create a `.env` file:
 
 ```env
-MONGODB_URL=mongodb://127.0.0.1:27017
+MONGODB_URL=your-mongodb-atlas-connection-string
 DATABASE_NAME=sawt
 
 JWT_SECRET_KEY=your-secret-key
