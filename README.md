@@ -539,30 +539,6 @@ Potential future improvements include:
 
 ---
 
-# 📸 Screenshots
-
-Screenshots can be added here to demonstrate the main interfaces.
-
-Recommended screenshots:
-
-1. Login / Registration
-2. Parent Dashboard
-3. Children Management
-4. Child Practice
-5. Pronunciation Result
-6. Parent Progress
-7. Therapist Dashboard
-8. Therapist Exercise Management
-9. AI Exercise Generator
-10. Admin Dashboard
-
-Example:
-
-```md
-![Child Practice](docs/screenshots/child-practice.png)
-```
-
----
 
 # 🎓 Academic Project
 
