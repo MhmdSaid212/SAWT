@@ -48,6 +48,7 @@ def format_exercise(exercise):
                 "id": str(target["_id"]),
                 "phoneme_id": target["phoneme_id"],
                 "target_word": target["target_word"],
+                "visual_emoji": target.get("visual_emoji"),
                 "phoneme_symbol": (
                     phoneme["symbol"]
                     if phoneme
@@ -64,6 +65,9 @@ def format_exercise(exercise):
         "difficulty_level": exercise[
             "difficulty_level"
         ],
+        "visual_emoji": exercise.get(
+            "visual_emoji"
+        ),
         "created_by": exercise["created_by"],
         "targets": formatted_targets,
     }
@@ -81,6 +85,7 @@ def create_exercise_endpoint(
         "description": exercise.description,
         "language": exercise.language,
         "difficulty_level": exercise.difficulty_level,
+        "visual_emoji": exercise.visual_emoji,
         "created_by": current_user["id"],
     }
 
@@ -94,6 +99,7 @@ def create_exercise_endpoint(
                 "exercise_id": exercise_id,
                 "phoneme_id": target.phoneme_id,
                 "target_word": target.target_word,
+                "visual_emoji": target.visual_emoji,
             }
         )
 
@@ -106,13 +112,13 @@ def create_exercise_endpoint(
 @router.get("/")
 def list_exercises(
     current_user=Depends(
-    require_role(
-        "parent",
-        "child",
-        "therapist",
-        "admin",
-    )
-),
+        require_role(
+            "parent",
+            "child",
+            "therapist",
+            "admin",
+        )
+    ),
 ):
     exercises = get_exercises()
 
@@ -128,13 +134,13 @@ def list_exercises(
 def get_exercise_details(
     exercise_id: str,
     current_user=Depends(
-    require_role(
-        "parent",
-        "child",
-        "therapist",
-        "admin",
-    )
-),
+        require_role(
+            "parent",
+            "child",
+            "therapist",
+            "admin",
+        )
+    ),
 ):
     exercise = get_exercise_by_id(
         exercise_id
@@ -179,6 +185,7 @@ def update_exercise_endpoint(
         "description": exercise.description,
         "language": exercise.language,
         "difficulty_level": exercise.difficulty_level,
+        "visual_emoji": exercise.visual_emoji,
     }
 
     updated = update_exercise(

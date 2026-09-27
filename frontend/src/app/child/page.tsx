@@ -9,7 +9,7 @@ import {
   SectionLabel,
 } from "@/components/clay";
 import { SawtLogo } from "@/components/role-shell";
-import { getToken, removeToken } from "@/lib/auth";
+import { getToken, removeToken, getParentToken, restoreParentSession } from "@/lib/auth";
 
 type ChildProfile = {
   id: string;
@@ -51,6 +51,9 @@ export default function ChildDashboard() {
   const [progress, setProgress] = useState<ProgressData | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const [isParentPracticeMode, setIsParentPracticeMode] = useState(false);
+
+
   const activeAssignments = useMemo(
     () =>
       assignments.filter(
@@ -64,6 +67,7 @@ export default function ChildDashboard() {
   useEffect(() => {
     async function loadDashboard() {
       const token = getToken();
+      setIsParentPracticeMode(!!getParentToken());
 
       if (!token) {
         router.replace("/login");
@@ -174,6 +178,18 @@ export default function ChildDashboard() {
     router.push("/login");
   }
 
+  function handleBackToParent() {
+  const restored = restoreParentSession();
+
+  if (restored) {
+    router.push("/parent/children");
+    return;
+  }
+
+  removeToken();
+  router.push("/login");
+}
+
   if (loading) {
     return (
       <div className="min-h-screen bg-cream font-body text-ink">
@@ -225,10 +241,10 @@ export default function ChildDashboard() {
 
           <button
             type="button"
-            onClick={handleSignOut}
-            className="rounded-full bg-card px-5 py-2.5 text-sm font-bold clay-sm clay-press"
+            onClick={handleBackToParent}
+            className="rounded-full bg-ink px-5 py-3 text-sm font-bold text-cream clay-sm clay-press"
           >
-            Sign out
+            Back to Parent
           </button>
         </div>
       </header>
@@ -483,15 +499,8 @@ export default function ChildDashboard() {
       <footer className="border-t border-ink/10">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-6 py-8">
           <p className="text-sm text-muted">
-            SAWT — Arabic + English speech practice companion.
+            SAWT — English speech practice companion.
           </p>
-
-          <Link
-            href="/child"
-            className="text-sm font-bold text-brand"
-          >
-            Home
-          </Link>
         </div>
       </footer>
     </div>

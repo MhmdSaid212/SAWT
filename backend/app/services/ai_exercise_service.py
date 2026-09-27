@@ -27,8 +27,16 @@ Rules:
 - Use the requested language.
 - Avoid medical claims or diagnosis.
 - Keep words practical and easy to pronounce.
+- Every target word must have a simple, recognizable emoji
+  that visually represents the word.
+- Use a real Unicode emoji.
+- Choose an emoji that a young child can easily understand.
+- Do not use the same generic emoji for every word.
+- The emoji must match the meaning of the target word.
+- For abstract words, choose the closest child-friendly visual.
 - Return ONLY valid JSON.
 - Do not include markdown.
+- Do not include explanations outside the JSON.
 
 Return exactly this structure:
 
@@ -36,9 +44,18 @@ Return exactly this structure:
   "title": "short exercise title",
   "instructions": "short child-friendly instructions",
   "words": [
-    "word1",
-    "word2",
-    "word3"
+    {{
+      "word": "word1",
+      "visual_emoji": "emoji1"
+    }},
+    {{
+      "word": "word2",
+      "visual_emoji": "emoji2"
+    }},
+    {{
+      "word": "word3",
+      "visual_emoji": "emoji3"
+    }}
   ]
 }}
 """

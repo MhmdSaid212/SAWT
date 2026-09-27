@@ -80,7 +80,7 @@ export default function AdminActivityPage() {
       {/* Navbar */}
       <header className="border-b border-ink/10 bg-card">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
-          <SawtLogo />
+          <SawtLogo subtitle="Admin space" />
 
           <nav className="flex items-center gap-2">
             <Link

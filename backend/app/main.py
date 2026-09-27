@@ -15,6 +15,8 @@ from app.api.users import router as users_router
 from app.api.audit_logs import router as audit_logs_router
 from fastapi.staticfiles import StaticFiles
 from app.api.ai_exercises import router as ai_exercises_router
+from app.api import activity
+from app.api.tts import router as tts_router
 
 app = FastAPI(
     title="SAWT API",
@@ -48,6 +50,8 @@ app.include_router(therapists_router)
 app.include_router(users_router)
 app.include_router(audit_logs_router)
 app.include_router(ai_exercises_router)
+app.include_router(activity.router)
+app.include_router(tts_router)
 
 @app.get("/")
 def root():

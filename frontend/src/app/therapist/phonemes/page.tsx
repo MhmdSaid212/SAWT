@@ -354,7 +354,7 @@ export default function TherapistPhonemesPage() {
     <main className="min-h-screen bg-cream text-ink">
       <header className="border-b border-black/5 bg-card">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
-          <SawtLogo />
+          <SawtLogo subtitle="Therapist space" />
 
           <nav className="flex items-center gap-6 text-sm font-semibold">
             <button

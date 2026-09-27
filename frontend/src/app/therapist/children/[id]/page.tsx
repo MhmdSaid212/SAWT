@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { SawtLogo } from "@/components/role-shell";
 
 type Child = {
   id: string;
@@ -578,59 +579,62 @@ function getAssignmentStatusIcon(status?: string) {
   return (
     <main className="min-h-screen bg-cream text-ink">
       {/* HEADER */}
-      <header className="border-b border-black/5 bg-card">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
-          <Link
-            href="/therapist"
-            className="font-display text-2xl font-bold"
-          >
-            SAWT
-          </Link>
+      <header className="border-b border-ink/10 bg-card">
+  <div className="mx-auto flex max-w-7xl items-center justify-between gap-6 px-6 py-5">
+    <div className="shrink-0">
+      <SawtLogo subtitle="Therapist space" />
+    </div>
 
-          <nav className="flex items-center gap-6 text-sm font-semibold">
-            <Link
-              href="/therapist"
-              className="text-muted hover:text-ink"
-            >
-              Dashboard
-            </Link>
+    <div className="flex items-center gap-2">
+      <nav className="flex flex-wrap items-center justify-end gap-2">
+        <Link
+          href="/therapist"
+          className="rounded-full px-4 py-2 text-sm font-semibold text-muted transition hover:bg-cream"
+        >
+          Dashboard
+        </Link>
 
-            <Link
-              href="/therapist/children"
-              className="text-ink"
-            >
-              Children
-            </Link>
+        <Link
+          href="/therapist/children"
+          className="rounded-full bg-ink px-4 py-2 text-sm font-bold text-cream"
+        >
+          Children
+        </Link>
 
-            <Link
-              href="/therapist/exercises"
-              className="text-muted hover:text-ink"
-            >
-              Exercises
-            </Link>
+        <Link
+          href="/therapist/exercises"
+          className="rounded-full px-4 py-2 text-sm font-semibold text-muted transition hover:bg-cream"
+        >
+          Exercises
+        </Link>
 
-            <Link
-              href="/therapist/progress"
-              className="text-muted hover:text-ink"
-            >
-              Progress
-            </Link>
+        <Link
+          href="/therapist/phonemes"
+          className="rounded-full px-4 py-2 text-sm font-semibold text-muted transition hover:bg-cream"
+        >
+          Phonemes
+        </Link>
 
-            <button
-              onClick={() => {
-                localStorage.removeItem(
-                  "sawt_token"
-                );
+        <Link
+          href="/therapist/progress"
+          className="rounded-full px-4 py-2 text-sm font-semibold text-muted transition hover:bg-cream"
+        >
+          Progress
+        </Link>
+      </nav>
 
-                window.location.href = "/login";
-              }}
-              className="rounded-full bg-ink px-4 py-2 text-white"
-            >
-              Sign out
-            </button>
-          </nav>
-        </div>
-      </header>
+      <button
+        onClick={() => {
+          localStorage.removeItem("sawt_token");
+          window.location.href = "/login";
+        }}
+        className="ml-2 rounded-full bg-card px-5 py-2.5 text-sm font-bold clay-sm clay-press"
+      >
+        Sign out
+      </button>
+    </div>
+  </div>
+</header>
 
       <section className="mx-auto max-w-7xl px-6 py-10">
         {/* BACK */}

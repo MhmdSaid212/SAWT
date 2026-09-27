@@ -17,10 +17,17 @@ import {
   getChildren,
   getChildAssignments,
   getParentSummary,
+  updateChild,
+  deleteChild,
   type ChildAssignment,
 } from "@/lib/api";
 
-import { getToken, removeToken } from "@/lib/auth";
+import {
+  getToken,
+  removeToken,
+  saveParentToken,
+  saveToken,
+} from "@/lib/auth";
 
 type Child = {
   id: string;
@@ -86,7 +93,8 @@ function calculateAge(dateOfBirth: string) {
   const birthDate = new Date(dateOfBirth);
   const today = new Date();
 
-  let age = today.getFullYear() - birthDate.getFullYear();
+  let age =
+    today.getFullYear() - birthDate.getFullYear();
 
   const monthDifference =
     today.getMonth() - birthDate.getMonth();
@@ -164,6 +172,36 @@ export default function ChildrenPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  /*
+   * Edit state
+   */
+  const [editingChild, setEditingChild] =
+    useState<Child | null>(null);
+
+  const [editName, setEditName] = useState("");
+  const [editDateOfBirth, setEditDateOfBirth] =
+    useState("");
+  const [editLanguage, setEditLanguage] =
+    useState("");
+
+  const [savingEdit, setSavingEdit] =
+    useState(false);
+
+  const [editError, setEditError] =
+    useState("");
+
+  /*
+   * Delete state
+   */
+  const [deletingChild, setDeletingChild] =
+    useState<Child | null>(null);
+
+  const [deleting, setDeleting] =
+    useState(false);
+
+  const [deleteError, setDeleteError] =
+    useState("");
+
   useEffect(() => {
     async function loadChildrenPage() {
       const storedToken = getToken();
@@ -192,12 +230,6 @@ export default function ChildrenPage() {
 
         /*
          * Load parent summary.
-         *
-         * Provides:
-         * - attempts
-         * - average accuracy
-         * - best score
-         * - recent attempts
          */
         const summaryData =
           await getParentSummary(token);
@@ -239,13 +271,6 @@ export default function ChildrenPage() {
             )
           );
 
-        /*
-         * Convert assignment results into:
-         *
-         * {
-         *   childId: [...]
-         * }
-         */
         const assignmentMap: Record<
           string,
           ChildAssignment[]
@@ -292,17 +317,17 @@ export default function ChildrenPage() {
   }
 
   function getAssignmentsForChild(
-  childId: string
-): ChildAssignment[] {
-  return assignmentsByChild[childId] ?? [];
-}
+    childId: string
+  ): ChildAssignment[] {
+    return assignmentsByChild[childId] ?? [];
+  }
 
   function getActiveAssignments(
     childId: string
   ) {
     return getAssignmentsForChild(
-    childId
-  ).filter(
+      childId
+    ).filter(
       (assignment) =>
         assignment.status !==
           "completed" &&
@@ -336,44 +361,260 @@ export default function ChildrenPage() {
     );
   }
 
+  /*
+   * Open edit modal.
+   */
+  function handleOpenEdit(child: Child) {
+    setEditingChild(child);
+    setEditName(child.full_name);
+    setEditDateOfBirth(
+      child.date_of_birth?.slice(0, 10) ?? ""
+    );
+    setEditLanguage(
+      child.language_preference
+    );
+    setEditError("");
+  }
+
+  /*
+   * Save child changes.
+   */
+  async function handleSaveEdit() {
+    if (!editingChild) return;
+
+    const token = getToken();
+
+    if (!token) {
+      router.push("/login");
+      return;
+    }
+
+    if (!editName.trim()) {
+      setEditError("Please enter the child's name.");
+      return;
+    }
+
+    if (!editDateOfBirth) {
+      setEditError(
+        "Please enter the child's date of birth."
+      );
+      return;
+    }
+
+    if (!editLanguage) {
+      setEditError(
+        "Please select a language preference."
+      );
+      return;
+    }
+
+    setSavingEdit(true);
+    setEditError("");
+
+    try {
+      const updatedChild = await updateChild(
+        editingChild.id,
+        {
+          full_name: editName.trim(),
+          date_of_birth: editDateOfBirth,
+          language_preference: editLanguage,
+        },
+        token
+      );
+
+      /*
+       * Update the child card immediately.
+       */
+      setChildren((currentChildren) =>
+        currentChildren.map((child) =>
+          child.id === editingChild.id
+            ? {
+                ...child,
+                full_name:
+                  updatedChild.full_name ??
+                  editName.trim(),
+                date_of_birth:
+                  updatedChild.date_of_birth ??
+                  editDateOfBirth,
+                language_preference:
+                  updatedChild.language_preference ??
+                  editLanguage,
+              }
+            : child
+        )
+      );
+
+      /*
+       * Update summary child name as well,
+       * so progress-related values remain
+       * consistent without a refresh.
+       */
+      setSummary((currentSummary) => {
+        if (!currentSummary) return currentSummary;
+
+        return {
+          ...currentSummary,
+          children:
+            currentSummary.children.map(
+              (child) =>
+                child.child_id ===
+                editingChild.id
+                  ? {
+                      ...child,
+                      name:
+                        updatedChild.full_name ??
+                        editName.trim(),
+                    }
+                  : child
+            ),
+        };
+      });
+
+      setEditingChild(null);
+    } catch (saveError) {
+      console.error(saveError);
+
+      setEditError(
+        saveError instanceof Error
+          ? saveError.message
+          : "Failed to update child."
+      );
+    } finally {
+      setSavingEdit(false);
+    }
+  }
+
+  /*
+   * Open delete confirmation.
+   */
+  function handleOpenDelete(child: Child) {
+    setDeletingChild(child);
+    setDeleteError("");
+  }
+
+  /*
+   * Delete child.
+   */
+  async function handleDeleteChild() {
+    if (!deletingChild) return;
+
+    const token = getToken();
+
+    if (!token) {
+      router.push("/login");
+      return;
+    }
+
+    setDeleting(true);
+    setDeleteError("");
+
+    try {
+      await deleteChild(
+        deletingChild.id,
+        token
+      );
+
+      /*
+       * Remove child from the UI immediately.
+       */
+      setChildren((currentChildren) =>
+        currentChildren.filter(
+          (child) =>
+            child.id !== deletingChild.id
+        )
+      );
+
+      /*
+       * Remove assignment data for that child.
+       */
+      setAssignmentsByChild(
+        (currentAssignments) => {
+          const updated = {
+            ...currentAssignments,
+          };
+
+          delete updated[deletingChild.id];
+
+          return updated;
+        }
+      );
+
+      /*
+       * Remove child from summary.
+       */
+      setSummary((currentSummary) => {
+        if (!currentSummary) return currentSummary;
+
+        return {
+          ...currentSummary,
+          children:
+            currentSummary.children.filter(
+              (child) =>
+                child.child_id !==
+                deletingChild.id
+            ),
+          children_count:
+            Math.max(
+              0,
+              currentSummary.children_count - 1
+            ),
+        };
+      });
+
+      setDeletingChild(null);
+    } catch (deleteErr) {
+      console.error(deleteErr);
+
+      setDeleteError(
+        deleteErr instanceof Error
+          ? deleteErr.message
+          : "Failed to delete child."
+      );
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   return (
     <div className="min-h-screen bg-cream font-body text-ink">
       {/* Header */}
       <header className="border-b border-ink/10 bg-card">
-        <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-6 px-6 py-5">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-6 px-6 py-5">
           <div className="shrink-0">
             <SawtLogo subtitle="Parent space" />
           </div>
 
-          <nav className="flex flex-1 flex-wrap items-center gap-2">
-            {navItems.map((item) => {
-              const isActive =
-                item.href ===
-                "/parent/children";
+          <div className="flex items-center gap-2">
+            <nav className="flex flex-wrap items-center justify-end gap-2">
+              {navItems.map((item) => {
+                const isActive =
+                  item.href ===
+                  "/parent/children";
 
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={
-                    isActive
-                      ? "rounded-full bg-ink px-4 py-2 text-sm font-bold text-cream"
-                      : "rounded-full px-4 py-2 text-sm font-semibold text-muted transition hover:bg-cream"
-                  }
-                >
-                  {item.label}
-                </Link>
-              );
-            })}
-          </nav>
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={
+                      isActive
+                        ? "rounded-full bg-ink px-4 py-2 text-sm font-bold text-cream"
+                        : "rounded-full px-4 py-2 text-sm font-semibold text-muted transition hover:bg-cream"
+                    }
+                  >
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </nav>
 
-          <button
-            type="button"
-            onClick={handleSignOut}
-            className="rounded-full bg-card px-5 py-2.5 text-sm font-bold clay-sm clay-press"
-          >
-            Sign out
-          </button>
+            <button
+              type="button"
+              onClick={handleSignOut}
+              className="ml-2 rounded-full bg-card px-5 py-2.5 text-sm font-bold clay-sm clay-press"
+            >
+              Sign out
+            </button>
+          </div>
         </div>
       </header>
 
@@ -476,9 +717,9 @@ export default function ChildrenPage() {
                     );
 
                   const assignments =
-                  getAssignmentsForChild(
-                    child.id
-                  );
+                    getAssignmentsForChild(
+                      child.id
+                    );
 
                   const activeAssignments =
                     getActiveAssignments(
@@ -514,8 +755,9 @@ export default function ChildrenPage() {
                   return (
                     <ClayCard
                       key={child.id}
-                      className="rounded-[2rem] p-7"
+                      className="flex h-full flex-col rounded-[2rem] p-7"
                     >
+                      <div className="flex-1">
                       {/* Child Header */}
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex items-center gap-4">
@@ -760,26 +1002,101 @@ export default function ChildrenPage() {
                           </p>
                         )}
                       </div>
-
+                      </div>
                       {/* Actions */}
-                      <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-                        <Link
-                          href={`/parent/children/${encodeURIComponent(
-                            child.id
-                          )}`}
-                          className="flex-1 rounded-full bg-ink px-5 py-3 text-center text-sm font-bold text-cream clay-sm clay-press"
+                      <div className="mt-7 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            const parentToken =
+                              getToken();
+
+                            if (!parentToken) {
+                              router.push(
+                                "/login"
+                              );
+                              return;
+                            }
+
+                            try {
+                              const response =
+                                await fetch(
+                                  `http://127.0.0.1:8000/auth/parent/enter-child/${encodeURIComponent(
+                                    child.id
+                                  )}`,
+                                  {
+                                    method:
+                                      "POST",
+                                    headers: {
+                                      Authorization: `Bearer ${parentToken}`,
+                                    },
+                                  }
+                                );
+
+                              const data =
+                                await response.json();
+
+                              if (
+                                !response.ok
+                              ) {
+                                throw new Error(
+                                  data?.detail ||
+                                    "Failed to enter child practice session"
+                                );
+                              }
+
+                              saveParentToken(
+                                parentToken
+                              );
+
+                              saveToken(
+                                data.token
+                              );
+
+                              router.push(
+                                "/child"
+                              );
+                            } catch (error) {
+                              console.error(
+                                error
+                              );
+
+                              alert(
+                                error instanceof
+                                  Error
+                                  ? error.message
+                                  : "Failed to enter child practice session"
+                              );
+                            }
+                          }}
+                          className="rounded-full bg-ink px-5 py-3 text-center text-sm font-bold text-cream clay-sm clay-press"
                         >
                           Enter
-                        </Link>
+                        </button>
 
-                        <Link
-                          href={`/parent/progress?child=${encodeURIComponent(
-                            child.id
-                          )}`}
-                          className="flex-1 rounded-full bg-card px-5 py-3 text-center text-sm font-bold clay-sm clay-press"
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleOpenEdit(
+                              child
+                            )
+                          }
+                          className="rounded-full bg-butter px-5 py-3 text-center text-sm font-bold text-ink clay-sm clay-press"
                         >
-                          Progress
-                        </Link>
+                          Edit
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleOpenDelete(
+                              child
+                            )
+                          }
+                          className="rounded-full bg-soft px-5 py-3 text-center text-sm font-bold text-brand clay-sm clay-press"
+                        >
+                          Delete
+                        </button>
                       </div>
                     </ClayCard>
                   );
@@ -801,26 +1118,198 @@ export default function ChildrenPage() {
         </section>
       </main>
 
+      {/* Edit Modal */}
+      {editingChild && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 px-6 py-10">
+          <ClayCard className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-[2rem] p-7">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <SectionLabel>
+                  Edit child
+                </SectionLabel>
+
+                <h2 className="mt-2 font-display text-3xl font-bold">
+                  Update {editingChild.full_name}
+                </h2>
+
+                <p className="mt-2 text-sm leading-6 text-muted">
+                  Update the child's basic profile
+                  information.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() =>
+                  setEditingChild(null)
+                }
+                className="grid size-10 shrink-0 place-items-center rounded-full bg-cream text-lg font-bold clay-sm"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="mt-7 space-y-5">
+              <div>
+                <label className="text-sm font-bold">
+                  Full name
+                </label>
+
+                <input
+                  value={editName}
+                  onChange={(event) =>
+                    setEditName(
+                      event.target.value
+                    )
+                  }
+                  className="mt-2 w-full rounded-2xl bg-cream px-4 py-3 text-sm font-semibold outline-none clay-sm"
+                  placeholder="Child's full name"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-bold">
+                  Date of birth
+                </label>
+
+                <input
+                  type="date"
+                  value={editDateOfBirth}
+                  onChange={(event) =>
+                    setEditDateOfBirth(
+                      event.target.value
+                    )
+                  }
+                  className="mt-2 w-full rounded-2xl bg-cream px-4 py-3 text-sm font-semibold outline-none clay-sm"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-bold">
+                  Language preference
+                </label>
+
+                <select
+                  value={editLanguage}
+                  onChange={(event) =>
+                    setEditLanguage(
+                      event.target.value
+                    )
+                  }
+                  className="mt-2 w-full rounded-2xl bg-cream px-4 py-3 text-sm font-semibold outline-none clay-sm"
+                >
+                  <option value="english">
+                    English
+                  </option>
+
+                  <option value="arabic">
+                    Arabic
+                  </option>
+
+                  <option value="both">
+                    Arabic + English
+                  </option>
+                </select>
+              </div>
+
+              {editError && (
+                <div className="rounded-2xl bg-soft p-4 text-sm font-semibold text-brand">
+                  {editError}
+                </div>
+              )}
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setEditingChild(null)
+                  }
+                  disabled={savingEdit}
+                  className="flex-1 rounded-full bg-cream px-5 py-3 text-sm font-bold clay-sm clay-press disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="button"
+                  onClick={
+                    handleSaveEdit
+                  }
+                  disabled={savingEdit}
+                  className="flex-1 rounded-full bg-ink px-5 py-3 text-sm font-bold text-cream clay-sm clay-press disabled:opacity-50"
+                >
+                  {savingEdit
+                    ? "Saving..."
+                    : "Save changes"}
+                </button>
+              </div>
+            </div>
+          </ClayCard>
+        </div>
+      )}
+
+      {/* Delete Modal */}
+      {deletingChild && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 px-6 py-10">
+          <ClayCard className="w-full max-w-md rounded-[2rem] p-7">
+            <SectionLabel>
+              Delete child
+            </SectionLabel>
+
+            <h2 className="mt-2 font-display text-3xl font-bold">
+              Delete {deletingChild.full_name}?
+            </h2>
+
+            <p className="mt-3 text-sm leading-6 text-muted">
+              This will remove the child's profile
+              and account. This action cannot be
+              undone.
+            </p>
+
+            {deleteError && (
+              <div className="mt-5 rounded-2xl bg-soft p-4 text-sm font-semibold text-brand">
+                {deleteError}
+              </div>
+            )}
+
+            <div className="mt-7 flex gap-3">
+              <button
+                type="button"
+                onClick={() =>
+                  setDeletingChild(null)
+                }
+                disabled={deleting}
+                className="flex-1 rounded-full bg-cream px-5 py-3 text-sm font-bold clay-sm clay-press disabled:opacity-50"
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                onClick={
+                  handleDeleteChild
+                }
+                disabled={deleting}
+                className="flex-1 rounded-full bg-brand px-5 py-3 text-sm font-bold text-brand-foreground clay-sm clay-press disabled:opacity-50"
+              >
+                {deleting
+                  ? "Deleting..."
+                  : "Delete child"}
+              </button>
+            </div>
+          </ClayCard>
+        </div>
+      )}
+
       {/* Footer */}
       <footer className="border-t border-ink/10">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-6 py-8">
           <p className="text-sm text-muted">
-            SAWT — Arabic + English speech
+            SAWT — English speech
             practice companion.
           </p>
-
-          <div className="flex gap-5 text-sm text-muted">
-            <Link href="/parent">
-              Dashboard
-            </Link>
-
-            <Link href="/login">
-              Sign in
-            </Link>
-          </div>
         </div>
       </footer>
     </div>
   );
 }
-

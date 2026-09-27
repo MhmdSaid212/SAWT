@@ -129,21 +129,65 @@ def get_child_attempts(
         else 0
     )
 
+    result = []
+
+    for attempt in completed_attempts:
+        attempt_id = str(attempt["_id"])
+
+        # Get the child's audio recording
+        recording = get_audio_recording_by_attempt_id(
+            attempt_id
+        )
+
+        result.append(
+            {
+                "id": attempt_id,
+                "exercise_id": attempt.get("exercise_id"),
+                "assignment_id": attempt.get("assignment_id"),
+
+                # AI result
+                "score": attempt.get("ai_score"),
+                "ai_feedback": attempt.get("ai_feedback"),
+
+                # Old feedback fallback
+                "feedback": attempt.get("ai_feedback"),
+
+                # Transcript
+                "transcript": attempt.get("transcript"),
+
+                # Therapist feedback
+                "therapist_feedback": attempt.get(
+                    "therapist_feedback"
+                ),
+                "therapist_feedback_updated_at": attempt.get(
+                    "therapist_feedback_updated_at"
+                ),
+
+                # Audio recording
+                "recording": (
+                    {
+                        "file_url": recording.get(
+                            "file_url"
+                        ),
+                        "duration_seconds": recording.get(
+                            "duration_seconds",
+                            0,
+                        ),
+                    }
+                    if recording
+                    else None
+                ),
+
+                "created_at": attempt.get(
+                    "created_at"
+                ),
+            }
+        )
+
     return {
         "total_attempts": len(completed_attempts),
         "average_score": average_score,
-        "attempts": [
-            {
-                "id": str(attempt["_id"]),
-                "exercise_id": attempt.get("exercise_id"),
-                "assignment_id": attempt.get("assignment_id"),
-                "score": attempt.get("ai_score"),
-                "feedback": attempt.get("ai_feedback"),
-                "transcript": attempt.get("transcript"),
-                "created_at": attempt.get("created_at"),
-            }
-            for attempt in completed_attempts
-        ],
+        "attempts": result,
     }
 
 
@@ -256,6 +300,187 @@ def get_therapist_child_attempts(
         "attempts": result,
         "total_attempts": len(result),
     }
+
+
+
+@router.get("/parent/child/{child_id}")
+def get_parent_child_attempts(
+    child_id: str,
+    page: int = 1,
+    limit: int = 5,
+    current_user=Depends(get_current_user),
+):
+    if current_user["role"] != "parent":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only parents can view child practice history",
+        )
+
+    if page < 1:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Page must be greater than or equal to 1",
+        )
+
+    if limit < 1 or limit > 20:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Limit must be between 1 and 20",
+        )
+
+    child = get_child_by_id(child_id)
+
+    if not child:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Child not found",
+        )
+
+    # Make sure this parent owns the child.
+    if child.get("parent_id") != str(current_user["id"]):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can only view your own child's attempts",
+        )
+
+    attempts = get_attempts_by_child_id(child_id)
+
+    # Only completed attempts should appear in parent progress.
+    completed_attempts = [
+        attempt
+        for attempt in attempts
+        if attempt.get("ai_score") is not None
+    ]
+
+    completed_attempts.sort(
+        key=lambda attempt: attempt.get(
+            "created_at",
+            datetime.min.replace(tzinfo=timezone.utc),
+        ),
+        reverse=True,
+    )
+
+    total = len(completed_attempts)
+
+    total_pages = (
+        (total + limit - 1) // limit
+        if total
+        else 0
+    )
+
+    start = (page - 1) * limit
+    end = start + limit
+
+    paginated_attempts = completed_attempts[start:end]
+
+    result = []
+
+    for attempt in paginated_attempts:
+        attempt_id = str(attempt["_id"])
+
+        recording = get_audio_recording_by_attempt_id(
+            attempt_id
+        )
+
+        analyses = get_ai_analysis_by_attempt_id(
+            attempt_id
+        )
+
+        exercise = get_exercise_by_id(
+            attempt.get("exercise_id")
+        )
+
+        result.append(
+            {
+                "id": attempt_id,
+                "child_id": attempt.get("child_id"),
+                "exercise_id": attempt.get("exercise_id"),
+                "exercise": (
+                    {
+                        "id": str(exercise["_id"]),
+                        "title": exercise.get("title"),
+                        "target_word": exercise.get(
+                            "target_word"
+                        ),
+                    }
+                    if exercise
+                    else None
+                ),
+                "assignment_id": attempt.get(
+                    "assignment_id"
+                ),
+                "transcript": attempt.get(
+                    "transcript"
+                ),
+                "ai_score": attempt.get(
+                    "ai_score"
+                ),
+                "ai_feedback": attempt.get(
+                    "ai_feedback"
+                ),
+                "therapist_feedback": attempt.get(
+                    "therapist_feedback"
+                ),
+                "recording": (
+                    {
+                        "id": str(recording["_id"]),
+                        "file_url": recording.get(
+                            "file_url"
+                        ),
+                        "duration_seconds": recording.get(
+                            "duration_seconds",
+                            0,
+                        ),
+                        "created_at": recording.get(
+                            "created_at"
+                        ),
+                    }
+                    if recording
+                    else None
+                ),
+                "ai_analysis": [
+                    {
+                        "id": str(analysis["_id"]),
+                        "target_phoneme_id": analysis.get(
+                            "target_phoneme_id"
+                        ),
+                        "estimated_phoneme_id": analysis.get(
+                            "estimated_phoneme_id"
+                        ),
+                        "confidence": analysis.get(
+                            "confidence"
+                        ),
+                        "pronunciation_score": analysis.get(
+                            "pronunciation_score"
+                        ),
+                        "details": analysis.get(
+                            "details"
+                        ),
+                    }
+                    for analysis in analyses
+                ],
+                "created_at": attempt.get(
+                    "created_at"
+                ),
+            }
+        )
+
+    return {
+        "child": {
+            "id": child_id,
+            "name": child.get("full_name"),
+        },
+        "attempts": result,
+        "pagination": {
+            "page": page,
+            "limit": limit,
+            "total": total,
+            "total_pages": total_pages,
+            "has_next": page < total_pages,
+            "has_previous": page > 1,
+        },
+    }
+
 
 @router.get("/{attempt_id}")
 def get_attempt_details(

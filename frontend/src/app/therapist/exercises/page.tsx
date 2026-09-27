@@ -11,6 +11,7 @@ type ExerciseTarget = {
   phoneme_id: string;
   target_word: string;
   phoneme_symbol: string | null;
+  visual_emoji: string | null;
 };
 
 type Exercise = {
@@ -46,10 +47,15 @@ type ExerciseForm = {
   phoneme_id: string;
 };
 
+type GeneratedExerciseWord = {
+  word: string;
+  visual_emoji: string;
+};
+
 type GeneratedExercise = {
   title: string;
   instructions: string;
-  words: string[];
+  words: GeneratedExerciseWord[];
 };
 
 const emptyForm: ExerciseForm = {
@@ -437,20 +443,37 @@ export default function TherapistExercisesPage() {
         );
       }
 
-      setGeneratedExercise({
-        title:
-          data.exercise.title ||
-          "AI Generated Exercise",
+      const generatedWords = Array.isArray(
+  data.exercise.words
+)
+  ? data.exercise.words.filter(
+      (item: unknown): item is GeneratedExerciseWord =>
+        typeof item === "object" &&
+        item !== null &&
+        typeof (item as GeneratedExerciseWord).word ===
+          "string" &&
+        typeof (item as GeneratedExerciseWord).visual_emoji ===
+          "string"
+    )
+  : [];
 
-        instructions:
-          data.exercise.instructions ||
-          "Practice each word carefully.",
+if (generatedWords.length === 0) {
+  throw new Error(
+    "AI did not return valid target words."
+  );
+}
 
-        words:
-          Array.isArray(data.exercise.words)
-            ? data.exercise.words
-            : [],
-      });
+setGeneratedExercise({
+  title:
+    data.exercise.title ||
+    "AI Generated Exercise",
+
+  instructions:
+    data.exercise.instructions ||
+    "Practice each word carefully.",
+
+  words: generatedWords,
+});
     } catch (err) {
       console.error(err);
 
@@ -523,15 +546,18 @@ export default function TherapistExercisesPage() {
               aiDifficulty,
 
             targets:
-              generatedExercise.words.map(
-                (word) => ({
-                  phoneme_id:
-                    selectedPhoneme.id,
+            generatedExercise.words.map(
+              (item) => ({
+                phoneme_id:
+                  selectedPhoneme.id,
 
-                  target_word:
-                    word.trim(),
-                })
-              ),
+                target_word:
+                  item.word.trim(),
+
+                visual_emoji:
+                  item.visual_emoji || null,
+              })
+            ),
           }),
         }
       );
@@ -875,7 +901,7 @@ export default function TherapistExercisesPage() {
     <main className="min-h-screen bg-cream text-ink">
       <header className="border-b border-black/5 bg-card">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
-          <SawtLogo />
+          <SawtLogo subtitle="Therapist space" />
 
           <nav className="flex items-center gap-6 text-sm font-semibold">
             <button
@@ -1358,15 +1384,19 @@ export default function TherapistExercisesPage() {
 
                     <div className="mt-3 flex flex-wrap gap-2">
                       {generatedExercise.words.map(
-                        (word, index) => (
-                          <span
-                            key={`${word}-${index}`}
-                            className="rounded-full bg-card px-4 py-2 text-sm font-bold shadow-sm"
-                          >
-                            {word}
-                          </span>
-                        )
-                      )}
+                          (word, index) => (
+                            <span
+                              key={`${word.word}-${index}`}
+                              className="rounded-full bg-card px-4 py-2 text-sm font-bold shadow-sm"
+                            >
+                              <span className="mr-2 text-lg">
+                                {word.visual_emoji}
+                              </span>
+
+                              {word.word}
+                            </span>
+                          )
+                        )}
                     </div>
                   </div>
                 </div>
