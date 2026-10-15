@@ -555,6 +555,15 @@ The project explores how AI and speech technologies can support pronunciation pr
 
 ---
 
+
+## 🎥 Project Demo
+
+Want to see SAWT in action?
+
+[![Watch the SAWT Demo](https://img.youtube.com/vi/QXe8dDJHfY4/maxresdefault.jpg)](https://youtu.be/QXe8dDJHfY4)
+
+---
+
 ## 📄 License
 
 This project is developed for academic and educational purposes.
